@@ -1,2 +1,0 @@
-# uofthacks12
-Personic
