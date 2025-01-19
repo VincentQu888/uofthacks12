@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personic</title>
+
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='index.css')}}" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='P.svg')}}" type="image/x-icon">
+</head>
+<body>
+    <nav class="px-48 absolute z-10">
+        <p class="text-3xl font-extrabold">Personic.</p>
+    </nav>
+
+    <img src="{{ url_for('static', filename='clarinet.jpeg')}}" alt="background image" class="bg-img" id="bg-img-1"/>
+    <img src="{{ url_for('static', filename='orchestra.webp')}}" alt="background image" class="bg-img" id="bg-img-2"/>
+    <img src="{{ url_for('static', filename='piano.jpg')}}" alt="background image" class="bg-img" id="bg-img-3"/>
+    <div id="card" class="mx-48 my-32">
+        <p class="text-3xl font-bold">Personic Generator</p>
+        <div id="output" class="h-32 mb-4"></div>
+        <button id="download" class="mb-16">Download &rarr;</button>
+        
+        <form method="POST" action="{{ url_for('generate') }}" class="">
+            <p class="text-3xl mb-2 font-bold">Notes</p>
+            <p class="mb-2 text-grey">To add notes, type in each note and its duration separated by space. E.g. b/44 would create a b4 quarter note, while c/41 a/5,g/42 would create a c4 whole note followed by an a5 + g4 chord of half notes. To randomly generate notes type "r" instead of the note.</p>
+            <input class="input mb-8" type="text" name="notes-input" placeholder="Notes" value="{{ notes }}">
+            
+            <p class="text-3xl mb-2 font-bold">Accidentals</p>
+            <p class="mb-2 text-grey">To add accidentals, type in each accidental separated by space. E.g. ## b would add a double sharp to the first note and a flat to the second note. To add random accidentals, type r and then which accidentals to choose from. E.g. r#bn will randomly pick # b or n.</p>
+            <input class="input mb-4" type="text" name="accidentals-input" placeholder="Accidentals" value="{{ accidentals }}">
+            
+            <div class="toggle-switch-1 mb-8">
+                {% if toggle_accidentals %}
+                    <input name="toggle-accidentals" type="checkbox" id="toggle" checked/>
+                {% else %}
+                    <input name="toggle-accidentals" type="checkbox" id="toggle"/>
+                {% endif %}
+                <label for="toggle" class="slider"></label>
+            </div>
+            <p class="text-3xl mb-4 font-bold">Clef</p>
+            <select name="clef-select" class="input mb-8">
+                <option {% if clef == 'treble' %} selected="selected"{% endif %} value="treble">Treble</option>
+                <option {% if clef == 'bass' %} selected="selected"{% endif %} value="bass">Bass</option>
+                <option {% if clef == 'alto' %} selected="selected"{% endif %} value="alto">Alto</option>
+                <option {% if clef == 'tenor' %} selected="selected"{% endif %} value="tenor">Tenor</option>
+                <option {% if clef == 'soprano' %} selected="selected"{% endif %} value="soprano">Soprano</option>
+                <option {% if clef == 'mezzo-soprano' %} selected="selected"{% endif %} value="mezzo-soprano">Mezzo-Soprano</option>
+                <option {% if clef == 'baritone-f' %} selected="selected"{% endif %} value="baritone-f">Baritone-F</option>
+                <option {% if clef == 'subbass' %} selected="selected"{% endif %} value="subbass">Subbass</option>
+                <option {% if clef == 'percussion' %} selected="selected"{% endif %} value="percussion">Percussion</option>
+                <option {% if clef == 'tab' %} selected="selected"{% endif %} value="tab">Tablature</option>
+                <option {% if clef == 'french' %} selected="selected"{% endif %} value="french">French Violin</option>
+            </select>        
+
+            <p class="text-3xl mb-2 font-bold">Time Signature</p>
+            <p class="mb-2 text-grey">In the format "4/4", "6/8", etc.</p>
+            <input class="input mb-8" type="text" name="time-input" placeholder="Time signature" value="{{ time }}">
+            
+            <p class="text-3xl mb-2 font-bold">Key Signature</p>
+            <p class="mb-2 text-grey">B means B major, C# means C# major, D#m means D# minor. Capitalization matters!</p>
+            <input class="input mb-16" type="text" name="key-input" placeholder="Key signature" value="{{ key }}">
+
+            <p class="text-3xl mb-2 font-bold">Gain a New Perspective</p>
+            <p class="mb-4 text-grey">Have the perspective of another music theory teacher, a student, and StaffSlayer, our context-aware (and master of musical staffs) assistant. These three will help produce music theory questions for you!</p>
+            <div class="toggle-switch-2 mb-16">
+                {% if toggle_perspective %}
+                    <input name="toggle-perspective" type="checkbox" id="toggle2" checked/>
+                {% else %}
+                    <input name="toggle-perspective" type="checkbox" id="toggle2"/>
+                {% endif %}
+                <label for="toggle2" class="slider"></label>
+            </div>
+
+            {% if toggle_perspective %}
+                <p class="font-bold mb-2">Teacher's Answer:</p>
+                <p class="mb-8 text-grey">{{ teacher_questions }}</p>  
+                <p class="font-bold mb-2">Student's Answer:</p>
+                <p class="mb-8 text-grey">{{ student_questions }}</p>  
+                <p class="font-bold mb-2">StaffSlayer's Answer:</p>
+                <p class="mb-16 text-grey">{{ pro_questions }}</p> 
+            {% endif %} 
+
+            <button class="cta-button font-bold" type="submit">Submit &rarr;</button>
+        </form>
+    </div>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.5/build/cjs/vexflow.js"></script>
+    <script>
+        const {
+            Renderer,
+            Stave,
+            StaveNote,
+            Rest,
+            Accidental,
+            Voice,
+            Formatter,
+            Dot
+            } = Vex.Flow;
+
+
+            const div = document.getElementById('output');
+            const renderer = new Renderer(div, Renderer.Backends.SVG);
+
+            renderer.resize(1000, 1000);
+            const context = renderer.getContext();
+
+            const stave = new Stave(0, 0, 9999);
+
+
+            clef = "{{ clef }}" ? "{{ clef }}" : 'treble';
+            time = "{{ time }}" ? "{{ time }}" : '4/4';
+            key = "{{ key }}" ? "{{ key }}" : 'C'
+            stave.addClef(clef).addTimeSignature(time);
+            stave.addKeySignature(key);
+
+            stave.setContext(context).draw();
+
+
+
+            const notes = [];
+            const noteData = "{{ notes }}".split(" ");
+            const accidentals = [];
+            const accidentalData = "{{ accidentals }}".split(" ");
+            const toggleAccidentals = "{{ toggle_accidentals }}";
+            let beatsCount = 0;
+
+            for(let i = 0; i < noteData.length; ++i){
+                const noteSpec = noteData[i];
+
+                let note = '';
+                if(noteSpec.toLowerCase() === 'r'){
+                    const lo = 1, hi = 7;
+                    const noteNum = Math.floor(Math.random() * (hi - lo)) + lo;
+                    note = new StaveNote({
+                        keys: [String.fromCharCode(noteNum + 97) + "/4"],
+                        duration: String(2**noteNum), 
+                    });
+                    beatsCount += 4/(2**noteNum);
+                }else if(noteSpec.toLowerCase().includes('r')){
+                    note = new Rest({
+                        keys: ['b/4'],
+                        duration: noteSpec[noteSpec.length-1], 
+                    });
+                    beatsCount += 4/parseInt(noteSpec[noteSpec.length-1], 10);
+                }else{
+                    note = new StaveNote({
+                        keys: noteSpec.substring(0, noteSpec.length-1).split(","),
+                        duration: noteSpec[noteSpec.length-1], 
+                    });
+                    beatsCount += 4/parseInt(noteSpec[noteSpec.length-1], 10);
+                }
+        
+
+                if(toggleAccidentals === 'True'){
+                    accidentalDataSplit = accidentalData[i].split(",");
+                    for(let j = 0; j < accidentalDataSplit.length; ++j){
+                        if(accidentalDataSplit[j].toLowerCase().includes('r')){
+                            const lo = 1, hi = accidentalDataSplit[j].length;
+                            const idx = Math.floor(Math.random() * (hi - lo)) + lo;
+                            note.addModifier(new Accidental(accidentalDataSplit[j][idx]), j);
+                        }
+                        else if(accidentalDataSplit[j] !== "/") note.addModifier(new Accidental(accidentalDataSplit[j]), j);
+                    }
+                }
+            
+                notes.push(note);
+            }
+
+
+            const voice = new Voice({
+                num_beats: beatsCount,
+                beat_value: 4
+            });
+            voice.addTickables(notes);
+
+            new Formatter().joinVoices([voice]).format([voice], 350);
+            voice.draw(context, stave);
+
+
+
+
+            //downloading
+            document.getElementById('download').addEventListener('click', () => {
+                const svgElement = document.querySelector('#output svg');
+
+                if (svgElement) {
+                    const svgString = new XMLSerializer().serializeToString(svgElement);
+                    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'staff.svg'; 
+
+                    link.click();
+                } else {
+                    console.error('SVG element not found');
+                }
+            });
+    </script>
+</body>
+</html>
