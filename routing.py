@@ -23,7 +23,7 @@ def generate():
     accidentalsPrompt = "random accidentals"
     if not toggle_accidentals:
         accidentalsPrompt = "no accidentals"
-    prompt = f"Use {clef} clef staff in {time} time signature with {accidentalsPrompt} to make a list of questions. No images."
+    prompt = fThere is a {clef} clef staff in {time} time signature with {accidentalsPrompt} that you cannot see. With this information make a list of questions about the staff. No images and no answers."
 
     return render_template(
         'index.html',
